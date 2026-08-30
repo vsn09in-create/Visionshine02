@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StudioProfile, FormTemplate, StudioFormLink } from '../../types';
 import { CreateFormModal } from './CreateFormModal';
 import { ShareFormModal } from './ShareFormModal';
-import { GoogleAppsScriptSetupModal } from './GoogleAppsScriptSetupModal';
 import { VisionShineLogo } from '../VisionShineLogo';
 import { getAccessToken, syncTokenWithBackend, googleSignIn } from '../../services/googleAuth';
 import { safeFetchJson } from '../../utils/api';
@@ -31,7 +30,6 @@ import {
   Briefcase,
   Heart,
   Calendar,
-  Code2,
   ShieldCheck,
   Play,
   RefreshCw,
@@ -64,7 +62,6 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
   const [activeMenuTemplateId, setActiveMenuTemplateId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isAppsScriptModalOpen, setIsAppsScriptModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
   const [selectedForm, setSelectedForm] = useState<StudioFormLink | null>(null);
   const [formToEdit, setFormToEdit] = useState<StudioFormLink | null>(null);
@@ -444,7 +441,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     onChange={(e) =>
                       setProfileForm({ ...profileForm, defaultSpreadsheetId: e.target.value })
                     }
-                    placeholder="1bZkKL-DDJ3k6cge5uOexYYOuQZt4VyZ-bQCgTEbCd-M"
+                    placeholder="1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I"
                     className="w-full h-10 pl-10 pr-3.5 bg-[var(--bg-app)] border border-[var(--border-app)] rounded-xl text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)]"
                   />
                 </div>
@@ -506,14 +503,14 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               <div className="p-3.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-app-subtle)] space-y-1">
                 <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] flex items-center space-x-1.5">
                   <FileSpreadsheet className="w-3.5 h-3.5 text-[#107C41]" />
-                  <span>Connected Google Sheet</span>
+                  <span>Wedding Inquiry Sheet</span>
                 </span>
-                <p className="font-mono text-[11px] text-[var(--text-primary)] truncate">
-                  {studio.defaultSpreadsheetId}
+                <p className="font-mono text-[11px] text-[var(--text-primary)] truncate" title="1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I">
+                  {studio.defaultSpreadsheetId || '1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I'}
                 </p>
                 <div className="flex items-center justify-between pt-0.5">
                   <a
-                    href={studio.googleSpreadsheetUrl || `https://docs.google.com/spreadsheets/d/${studio.defaultSpreadsheetId}/edit`}
+                    href="https://docs.google.com/spreadsheets/d/1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I/edit?gid=399205612#gid=399205612"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[11px] text-[#107C41] hover:underline flex items-center space-x-1 font-medium"
@@ -521,18 +518,16 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     <span>Open Sheet</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
-                  {studio.googleFolderName && (
-                    <span className="text-[10px] text-[var(--text-muted)] font-mono truncate max-w-[100px]" title={studio.googleFolderName}>
-                      📁 {studio.googleFolderName}
-                    </span>
-                  )}
+                  <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                    GID: 399205612
+                  </span>
                 </div>
               </div>
             </div>
           )}
         </section>
 
-        {/* GOOGLE SHEETS & APPS SCRIPT INTEGRATION BANNER */}
+        {/* WEDDING PHOTOGRAPHY INQUIRY MANAGEMENT GOOGLE SHEET */}
         <section className="bg-gradient-to-r from-[#107C41]/10 via-[var(--bg-surface)] to-[var(--bg-surface)] border border-[#107C41]/30 rounded-2xl p-5 sm:p-6 shadow-xs">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-start space-x-3.5">
@@ -542,17 +537,20 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               <div className="space-y-1">
                 <div className="flex items-center space-x-2">
                   <span className="text-[10px] uppercase tracking-wider font-bold text-[#107C41] dark:text-[#25D366]">
-                    Google Sheets &amp; Apps Script Web App
+                    Wedding Photography Inquiry Management
                   </span>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-medium">
-                    {studio.appsScriptUrl ? 'Public Web App Linked' : 'Active Ledger'}
+                    Active Master Ledger
                   </span>
                 </div>
                 <h3 className="font-serif text-lg text-[var(--text-primary)] font-normal">
-                  Zero-Permission Client Submission Flow
+                  Google Sheet Inquiry Synchronization
                 </h3>
                 <p className="text-xs text-[var(--text-secondary)] max-w-2xl leading-relaxed">
-                  Configure your NEW Google Sheet with Google Apps Script Web App (<code className="font-mono text-[11px]">Execute as: Me</code> &amp; <code className="font-mono text-[11px]">Access: Anyone</code>). This guarantees ANY client on mobile or desktop submits without 403 access barriers.
+                  All wedding inquiries submitted by clients are recorded into your dedicated Google Sheet. Sync all submissions or open the spreadsheet directly in Google Sheets.
+                </p>
+                <p className="text-[11px] font-mono text-[var(--text-muted)] truncate max-w-xl">
+                  Sheet ID: 1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I &bull; Tab: GID 399205612
                 </p>
               </div>
             </div>
@@ -568,22 +566,14 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                 <span>{isSyncingAll ? 'Syncing...' : 'Sync Inquiries to Sheet'}</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setIsAppsScriptModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-[#107C41] text-white text-xs font-medium uppercase tracking-wider flex items-center space-x-1.5 shadow-2xs hover:opacity-90 active:scale-[0.99] transition-all cursor-pointer"
-              >
-                <Code2 className="w-4 h-4" />
-                <span>Apps Script &amp; Setup</span>
-              </button>
-
               <a
-                href={studio.googleSpreadsheetUrl || (studio.defaultSpreadsheetId ? `https://docs.google.com/spreadsheets/d/${studio.defaultSpreadsheetId}/edit?gid=399205612#gid=399205612` : 'https://sheets.new')}
+                href="https://docs.google.com/spreadsheets/d/1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I/edit?gid=399205612#gid=399205612"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3.5 py-2 rounded-xl border border-[var(--border-app)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-subtle)] text-xs text-[var(--text-primary)] font-medium flex items-center space-x-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-2 rounded-xl border border-[#107C41]/40 bg-[#107C41]/15 hover:bg-[#107C41]/25 text-xs text-[#107C41] dark:text-[#25D366] font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer"
               >
-                <span>Open Sheet</span>
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Open Wedding Inquiry Sheet</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>
@@ -1047,16 +1037,6 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
         onClose={() => setIsShareModalOpen(false)}
         form={selectedForm}
         onPreview={(code) => onPreviewForm(code)}
-      />
-
-      <GoogleAppsScriptSetupModal
-        isOpen={isAppsScriptModalOpen}
-        onClose={() => setIsAppsScriptModalOpen(false)}
-        studio={studio}
-        onUpdateStudio={(updated) => {
-          onUpdateStudio(updated);
-          fetchForms();
-        }}
       />
     </div>
   );

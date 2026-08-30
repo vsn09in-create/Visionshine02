@@ -40,7 +40,7 @@ export const CreateFormModal: React.FC<CreateFormModalProps> = ({
         const randomDigits = Math.floor(100 + Math.random() * 900);
         setTitle(`${studio.name} - ${template.title}`);
         setFormCode(`VS-WED${randomDigits}`);
-        setSpreadsheetId(studio.defaultSpreadsheetId || '1bZkKL-DDJ3k6cge5uOexYYOuQZt4VyZ-bQCgTEbCd-M');
+        setSpreadsheetId(studio.defaultSpreadsheetId || '1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I');
         setAppsScriptUrl(studio.appsScriptUrl || '');
         setCustomGreeting('Welcome! We are honored to document your wedding celebration.');
       }

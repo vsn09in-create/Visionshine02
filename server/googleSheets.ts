@@ -1217,14 +1217,14 @@ export async function ensureStudioDriveAndSheet(
       }
 
       const finalSheetId =
-        spreadsheetId || studio.defaultSpreadsheetId || '1bZkKL-DDJ3k6cge5uOexYYOuQZt4VyZ-bQCgTEbCd-M';
+        spreadsheetId || studio.defaultSpreadsheetId || '1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I';
 
       return {
         success: true,
         folderId,
         folderName,
         spreadsheetId: finalSheetId,
-        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${finalSheetId}/edit`,
+        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${finalSheetId}/edit?gid=399205612#gid=399205612`,
         isNew,
         message: isNew
           ? 'Created dedicated Google Drive folder and Google Sheet'
@@ -1236,14 +1236,14 @@ export async function ensureStudioDriveAndSheet(
   }
 
   const fallbackSheetId =
-    studio.defaultSpreadsheetId || '1bZkKL-DDJ3k6cge5uOexYYOuQZt4VyZ-bQCgTEbCd-M';
+    studio.defaultSpreadsheetId || '1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I';
 
   return {
     success: true,
     folderId: studio.googleFolderId || `folder_${studio.id}`,
     folderName,
     spreadsheetId: fallbackSheetId,
-    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${fallbackSheetId}/edit`,
+    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${fallbackSheetId}/edit?gid=399205612#gid=399205612`,
     isNew: false,
     message: 'Using configured studio spreadsheet',
   };

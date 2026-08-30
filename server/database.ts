@@ -609,7 +609,7 @@ class FormLinksDatabase {
       templateTitle: 'Wedding Photography Inquiry Form',
       title: `${studio.name} - Wedding Inquiry Form`,
       customGreeting: 'Welcome! We are honored to document your wedding celebration.',
-      spreadsheetId: studio.defaultSpreadsheetId || '1bZkKL-DDJ3k6cge5uOexYYOuQZt4VyZ-bQCgTEbCd-M',
+      spreadsheetId: studio.defaultSpreadsheetId || '1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I',
       isActive: true,
       allowFileUploads: true,
     });
