@@ -27,6 +27,20 @@ let isSigningIn = false;
 // Cache the access token in memory.
 let cachedAccessToken: string | null = null;
 
+// Sync token with server so public submissions can append live to Google Sheets
+export const syncTokenWithBackend = async (token: string) => {
+  if (!token) return;
+  try {
+    await fetch('/api/studio/google-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: token }),
+    });
+  } catch (e) {
+    console.warn('Could not sync token with server', e);
+  }
+};
+
 // Initialize auth state listener. Call this on app load.
 export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
@@ -35,6 +49,7 @@ export const initAuth = (
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user) {
       if (cachedAccessToken) {
+        syncTokenWithBackend(cachedAccessToken);
         if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
       } else if (!isSigningIn) {
         // User is logged into Firebase Auth, token might need refreshed or retrieved on explicit interaction
@@ -58,6 +73,7 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     }
 
     cachedAccessToken = credential.accessToken;
+    syncTokenWithBackend(cachedAccessToken);
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
     console.error('Sign in error:', error);

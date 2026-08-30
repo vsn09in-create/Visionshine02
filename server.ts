@@ -27,6 +27,10 @@ async function startServer() {
   const DEFAULT_SPREADSHEET_ID = '1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I';
   const initialSpreadsheetId = process.env.GOOGLE_SHEETS_ID || process.env.GOOGLE_SPREADSHEET_ID || DEFAULT_SPREADSHEET_ID;
 
+  // Store active Google OAuth token from Studio owner session
+  let activeGoogleAccessToken: string | null = null;
+  let activeGoogleAccessTokenExpiresAt = 0;
+
   let googleWorkspaceConfig = {
     folderId: process.env.GOOGLE_DRIVE_FOLDER_ID || '',
     folderName: 'VISIONSHINE - Client Submissions',
@@ -42,6 +46,18 @@ async function startServer() {
   };
 
   app.use(express.json({ limit: '20mb' }));
+
+  // Register Studio Owner's Google OAuth Token for Live Background Sync
+  app.post('/api/studio/google-token', (req: Request, res: Response) => {
+    const { accessToken } = req.body || {};
+    if (accessToken && typeof accessToken === 'string') {
+      activeGoogleAccessToken = accessToken;
+      activeGoogleAccessTokenExpiresAt = Date.now() + 3600 * 1000;
+      console.log('[Google Auth] Active Studio Google Access Token updated on backend for live sheet appends.');
+      return res.json({ success: true, message: 'Google Access Token registered on backend.' });
+    }
+    res.status(400).json({ success: false, message: 'Invalid token.' });
+  });
 
   // --- API Routes for Inquiry Database & Sheet System ---
 
@@ -575,8 +591,13 @@ async function startServer() {
 
       console.log(`[Public Client Submission Received] Form: ${code}, Studio: ${studio.name}, Couple: ${newInquiry.partner1} & ${newInquiry.partner2} -> Target Sheet: ${targetSheetId}, Apps Script: ${targetAppsScriptUrl ? 'Configured' : 'None'}`);
 
-      // Append to Google Sheet (using Apps Script Web App or Service Account)
-      const sheetResult = await appendToGoogleSheet(newInquiry, undefined, targetSheetId, targetAppsScriptUrl);
+      const activeToken =
+        activeGoogleAccessToken && Date.now() < activeGoogleAccessTokenExpiresAt
+          ? activeGoogleAccessToken
+          : undefined;
+
+      // Append to Google Sheet (using Apps Script Web App or active Studio Google Token or Service Account)
+      const sheetResult = await appendToGoogleSheet(newInquiry, activeToken, targetSheetId, targetAppsScriptUrl);
 
       if (sheetResult.success) {
         newInquiry.syncedToGoogleSheets = true;
@@ -775,7 +796,12 @@ async function startServer() {
   app.post('/api/sheets/sync-all', async (req: Request, res: Response) => {
     try {
       const authHeader = req.headers.authorization || '';
-      const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+      const incomingToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+      if (incomingToken) {
+        activeGoogleAccessToken = incomingToken;
+        activeGoogleAccessTokenExpiresAt = Date.now() + 3600 * 1000;
+      }
+      const token = incomingToken || (activeGoogleAccessToken && Date.now() < activeGoogleAccessTokenExpiresAt ? activeGoogleAccessToken : undefined);
       const { spreadsheetId: customSheetId, appsScriptUrl: customAppsScriptUrl } = req.body || {};
 
       const targetSheetId = customSheetId || googleWorkspaceConfig.spreadsheetId || DEFAULT_SPREADSHEET_ID;

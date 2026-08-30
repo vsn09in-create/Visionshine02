@@ -4,6 +4,7 @@ import { CreateFormModal } from './CreateFormModal';
 import { ShareFormModal } from './ShareFormModal';
 import { GoogleAppsScriptSetupModal } from './GoogleAppsScriptSetupModal';
 import { VisionShineLogo } from '../VisionShineLogo';
+import { getAccessToken, syncTokenWithBackend, googleSignIn } from '../../services/googleAuth';
 import {
   Camera,
   MoreVertical,
@@ -36,6 +37,7 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  UserCheck,
 } from 'lucide-react';
 import { ThemeMode } from '../../utils/theme';
 
@@ -65,6 +67,11 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
   const [selectedForm, setSelectedForm] = useState<StudioFormLink | null>(null);
   const [formToEdit, setFormToEdit] = useState<StudioFormLink | null>(null);
+
+  // Form Delete Modal State
+  const [formToDelete, setFormToDelete] = useState<StudioFormLink | null>(null);
+  const [isDeletingForm, setIsDeletingForm] = useState(false);
+  const [deleteSuccessMsg, setDeleteSuccessMsg] = useState<string | null>(null);
 
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -97,6 +104,13 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
   useEffect(() => {
     fetchTemplates();
     fetchForms();
+
+    // Sync any existing Google access token with backend
+    getAccessToken().then((token) => {
+      if (token) {
+        syncTokenWithBackend(token);
+      }
+    });
 
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -153,15 +167,25 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
     setIsCreateModalOpen(true);
   };
 
-  const handleDeleteForm = async (code: string) => {
-    if (!window.confirm(`Are you sure you want to delete form link ${code}?`)) return;
+  const handleConfirmDeleteForm = async () => {
+    if (!formToDelete) return;
+    setIsDeletingForm(true);
+    const code = formToDelete.formCode;
     try {
       const res = await fetch(`/api/studio/forms/${code}`, { method: 'DELETE' });
       if (res.ok) {
         setForms((prev) => prev.filter((f) => f.formCode !== code));
+        setFormToDelete(null);
+        setDeleteSuccessMsg(`Form link ${code} deleted successfully.`);
+        setTimeout(() => setDeleteSuccessMsg(null), 3000);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to delete form link.');
       }
     } catch (e) {
       console.error('Delete form failed', e);
+    } finally {
+      setIsDeletingForm(false);
     }
   };
 
@@ -192,9 +216,16 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
     setIsSyncingAll(true);
     setSyncStatus(null);
     try {
+      let token = await getAccessToken();
+      if (token) {
+        await syncTokenWithBackend(token);
+      }
       const res = await fetch('/api/sheets/sync-all', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           spreadsheetId: studio.defaultSpreadsheetId,
           appsScriptUrl: studio.appsScriptUrl,
@@ -867,7 +898,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDeleteForm(form.formCode)}
+                          onClick={() => setFormToDelete(form)}
                           className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-500 hover:bg-[var(--bg-surface-subtle)] transition-colors cursor-pointer"
                           title="Delete form link"
                         >
@@ -939,6 +970,61 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
           )}
         </section>
       </main>
+
+      {/* Delete Form Confirmation Modal */}
+      {formToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-[var(--bg-surface)] border border-[var(--border-app)] rounded-2xl shadow-2xl p-6 relative space-y-4">
+            <div className="flex items-start space-x-3.5">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-serif text-lg text-[var(--text-primary)] font-normal">
+                  Delete Form Link?
+                </h3>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                  Are you sure you want to delete form link <strong className="font-mono text-[var(--text-primary)]">{formToDelete.formCode}</strong> ({formToDelete.title})? Clients with this URL will no longer be able to submit inquiries.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setFormToDelete(null)}
+                disabled={isDeletingForm}
+                className="px-4 py-2 rounded-xl text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-subtle)] transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteForm}
+                disabled={isDeletingForm}
+                className="px-4.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-medium uppercase tracking-wider flex items-center space-x-1.5 shadow-2xs active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isDeletingForm ? (
+                  <span>Deleting...</span>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Link</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Success Toast */}
+      {deleteSuccessMsg && (
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 bg-[var(--bg-surface)] border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 rounded-xl shadow-xl flex items-center space-x-2 text-xs animate-in slide-in-from-bottom-3 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span>{deleteSuccessMsg}</span>
+        </div>
+      )}
 
       {/* Modals */}
       <CreateFormModal
