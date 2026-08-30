@@ -1,0 +1,36 @@
+[
+  {
+    "id": "studio_visionshine",
+    "name": "VisionShine Studios",
+    "slug": "visionshine",
+    "ownerName": "Studio Director",
+    "email": "studio@visionshine.com",
+    "phone": "+91 98201 23456",
+    "website": "https://visionshine.com",
+    "instagram": "@visionshine_studios",
+    "tagline": "Fine-Art Luxury Wedding Photography & Cinematic Films",
+    "defaultSpreadsheetId": "1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I",
+    "googleSpreadsheetUrl": "https://docs.google.com/spreadsheets/d/1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I/edit?gid=399205612#gid=399205612",
+    "createdAt": "2026-08-29T23:35:17.932Z",
+    "updatedAt": "2026-08-30T00:08:00.000Z",
+    "whatsapp": "+91 98201 23456"
+  },
+  {
+    "id": "studio_76736e3039",
+    "name": "VSN's Studio",
+    "slug": "vsn-s-studio",
+    "ownerName": "VSN",
+    "email": "vsn09.in@gmail.com",
+    "phone": "+91 98201 23456",
+    "whatsapp": "+91 98201 23456",
+    "website": "",
+    "instagram": "",
+    "tagline": "Fine-Art Wedding Photography & Cinematic Films",
+    "defaultSpreadsheetId": "1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I",
+    "googleFolderId": "1vuBP5W2aIbq-JwRKPUiAfWzx-Arb4nZX",
+    "googleFolderName": "Studio Forms",
+    "createdAt": "2026-08-29T23:50:37.776Z",
+    "updatedAt": "2026-08-30T00:08:00.000Z",
+    "googleSpreadsheetUrl": "https://docs.google.com/spreadsheets/d/1Ehg3A_TnzZYg048U6f1sRvd_lrmyj5_8Nn7DVci1D-I/edit?gid=399205612#gid=399205612"
+  }
+]

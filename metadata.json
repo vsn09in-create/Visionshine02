@@ -1,0 +1,8 @@
+{
+  "name": "Remix VSN LEADS",
+  "description": "A luxury, multi-step private client onboarding and wedding questionnaire experience for bespoke wedding photography studios.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
