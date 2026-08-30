@@ -17,6 +17,7 @@ import {
   Globe2,
   Lock,
 } from 'lucide-react';
+import { safeFetchJson } from '../../utils/api';
 
 interface GoogleAppsScriptSetupModalProps {
   isOpen: boolean;
@@ -63,9 +64,8 @@ export const GoogleAppsScriptSetupModal: React.FC<GoogleAppsScriptSetupModalProp
 
   const fetchAppsScriptCode = async () => {
     try {
-      const res = await fetch('/api/apps-script/code');
-      const data = await res.json();
-      if (data.success && data.code) {
+      const { ok, data } = await safeFetchJson<{ success: boolean; code?: string }>('/api/apps-script/code');
+      if (ok && data && data.success && data.code) {
         setScriptCode(data.code);
       }
     } catch (e) {
@@ -93,18 +93,20 @@ export const GoogleAppsScriptSetupModal: React.FC<GoogleAppsScriptSetupModalProp
     setIsSaving(true);
     try {
       // 1. Update Studio profile
-      const studioRes = await fetch('/api/studio/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          defaultSpreadsheetId: spreadsheetId.trim(),
-          appsScriptUrl: appsScriptUrl.trim(),
-        }),
-      });
-      const studioData = await studioRes.json();
+      const { ok: profileOk, data: studioData } = await safeFetchJson<{ success: boolean; studio?: StudioProfile }>(
+        '/api/studio/profile',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            defaultSpreadsheetId: spreadsheetId.trim(),
+            appsScriptUrl: appsScriptUrl.trim(),
+          }),
+        }
+      );
 
       // 2. Update Google config on backend
-      await fetch('/api/google/config', {
+      await safeFetchJson('/api/google/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -113,7 +115,7 @@ export const GoogleAppsScriptSetupModal: React.FC<GoogleAppsScriptSetupModalProp
         }),
       });
 
-      if (studioData.success && studioData.studio) {
+      if (profileOk && studioData && studioData.success && studioData.studio) {
         onUpdateStudio(studioData.studio);
       }
 
@@ -130,31 +132,35 @@ export const GoogleAppsScriptSetupModal: React.FC<GoogleAppsScriptSetupModalProp
     setIsTesting(true);
     setTestResult(null);
     try {
-      let res;
+      let result;
       if (appsScriptUrl && appsScriptUrl.trim().startsWith('http')) {
         // Test Google Apps Script Web App
-        res = await fetch('/api/apps-script/test', {
+        const res = await safeFetchJson<any>('/api/apps-script/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             webAppUrl: appsScriptUrl.trim(),
           }),
         });
+        result = res;
       } else {
         // Test Direct Sheets API
-        res = await fetch('/api/sheets/test-append', {
+        const res = await safeFetchJson<any>('/api/sheets/test-append', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             spreadsheetId: spreadsheetId.trim(),
           }),
         });
+        result = res;
       }
 
-      const data = await res.json();
+      const data = result.data || {};
+      const isSuccess = Boolean(result.ok && data.success);
+
       setTestResult({
-        success: data.success,
-        message: data.message || (data.success ? 'Test submission completed!' : 'Test submission failed.'),
+        success: isSuccess,
+        message: data.message || (isSuccess ? 'Test submission completed!' : 'Test submission failed.'),
         rowIndex: data.result?.rowIndex || data.rowIndex || data.submission?.sheetsRowIndex,
         authMethod: data.result?.authMethod || data.authMethod,
         spreadsheetUrl:

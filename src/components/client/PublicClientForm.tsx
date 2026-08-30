@@ -12,6 +12,7 @@ import { NavigationControls } from '../NavigationControls';
 import { ThemeMode } from '../../utils/theme';
 import { Sun, Moon, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { VisionShineLogo } from '../VisionShineLogo';
+import { safeFetchJson } from '../../utils/api';
 
 interface PublicClientFormProps {
   formCode: string;
@@ -60,10 +61,11 @@ export const PublicClientForm: React.FC<PublicClientFormProps> = ({
       setIsLoadingMeta(true);
       setMetaError(null);
       try {
-        const res = await fetch(`/api/public/form/${encodeURIComponent(formCode)}`);
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.message || 'This inquiry form link is invalid or unavailable.');
+        const { ok, data } = await safeFetchJson<{ success: boolean; message?: string; form: PublicFormMetadata }>(
+          `/api/public/form/${encodeURIComponent(formCode)}`
+        );
+        if (!ok || !data || !data.success) {
+          throw new Error(data?.message || 'This inquiry form link is invalid or unavailable.');
         }
         if (isMounted) {
           setFormMeta(data.form);
@@ -204,18 +206,19 @@ export const PublicClientForm: React.FC<PublicClientFormProps> = ({
     setSubmitError(null);
 
     try {
-      const response = await fetch(`/api/public/form/${encodeURIComponent(formCode)}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submission),
-      });
+      const { ok, data: result } = await safeFetchJson<any>(
+        `/api/public/form/${encodeURIComponent(formCode)}/submit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(submission),
+        }
+      );
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
+      if (!ok || !result || !result.success) {
         throw new Error(
-          result.error ||
-            result.message ||
+          result?.error ||
+            result?.message ||
             'Failed to record your submission to the studio ledger. Please try again.'
         );
       }

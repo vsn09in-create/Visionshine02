@@ -3,6 +3,7 @@ import { StudioProfile } from '../../types';
 import { Lock, Mail, ArrowRight, Sparkles, ShieldCheck, Loader2 } from 'lucide-react';
 import { googleSignIn } from '../../services/googleAuth';
 import { VisionShineLogo } from '../VisionShineLogo';
+import { safeFetchJson } from '../../utils/api';
 
 interface StudioLoginProps {
   onLoginSuccess: (studio: StudioProfile, token: string) => void;
@@ -49,20 +50,22 @@ export const StudioLogin: React.FC<StudioLoginProps> = ({ onLoginSuccess }) => {
       }
 
       // 2. Exchange with Studio Backend
-      const response = await fetch('/api/studio/google-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: googleUserEmail,
-          displayName: googleDisplayName,
-          photoURL: googlePhotoUrl,
-          accessToken: googleAccessToken,
-        }),
-      });
+      const { ok, data } = await safeFetchJson<{ success: boolean; studio: StudioProfile; token: string; message?: string }>(
+        '/api/studio/google-login',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: googleUserEmail,
+            displayName: googleDisplayName,
+            photoURL: googlePhotoUrl,
+            accessToken: googleAccessToken,
+          }),
+        }
+      );
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to authenticate Google account with Studio portal.');
+      if (!ok || !data || !data.success) {
+        throw new Error(data?.message || 'Failed to authenticate Google account with Studio portal.');
       }
 
       onLoginSuccess(data.studio, data.token);
@@ -80,15 +83,17 @@ export const StudioLogin: React.FC<StudioLoginProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     try {
-      const response = await fetch('/api/studio/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password: password.trim() }),
-      });
+      const { ok, data } = await safeFetchJson<{ success: boolean; studio: StudioProfile; token: string; message?: string }>(
+        '/api/studio/login',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), password: password.trim() }),
+        }
+      );
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Invalid credentials.');
+      if (!ok || !data || !data.success) {
+        throw new Error(data?.message || 'Invalid credentials.');
       }
 
       onLoginSuccess(data.studio, data.token);
@@ -106,15 +111,17 @@ export const StudioLogin: React.FC<StudioLoginProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     try {
-      const response = await fetch('/api/studio/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'studio@visionshine.com', password: 'demo' }),
-      });
+      const { ok, data } = await safeFetchJson<{ success: boolean; studio: StudioProfile; token: string; message?: string }>(
+        '/api/studio/login',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'studio@visionshine.com', password: 'demo' }),
+        }
+      );
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Could not log in.');
+      if (!ok || !data || !data.success) {
+        throw new Error(data?.message || 'Could not log in.');
       }
 
       onLoginSuccess(data.studio, data.token);

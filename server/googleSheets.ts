@@ -42,6 +42,19 @@ export interface ServiceAccountInfo {
 let cachedServiceAccountToken: { token: string; expiresAt: number; clientEmail: string } | null = null;
 
 /**
+ * Safely parse JSON from fetch Response without throwing SyntaxError on HTML error pages
+ */
+async function safeResponseJson<T = any>(res: any): Promise<T | null> {
+  try {
+    const text = await res.text();
+    if (!text || !text.trim()) return null;
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Get Service Account credentials and metadata from environment variables
  */
 export function getServiceAccountInfo(): ServiceAccountInfo {
@@ -135,7 +148,10 @@ export async function getServiceAccountAccessToken(): Promise<{ token: string; c
       throw new Error(`Google Service Account Token Exchange failed (${res.status}): ${errText}`);
     }
 
-    const data = await res.json();
+    const data = await safeResponseJson(res);
+    if (!data || !data.access_token) {
+      throw new Error('Google Service Account Token Exchange returned invalid response');
+    }
     cachedServiceAccountToken = {
       token: data.access_token,
       expiresAt: now + (data.expires_in || 3600),
@@ -391,8 +407,8 @@ export async function appendToGoogleSheet(
             }
           );
           if (metaRes.ok) {
-            const metaData = await metaRes.json();
-            const sheets = metaData.sheets || [];
+            const metaData = await safeResponseJson(metaRes);
+            const sheets = metaData?.sheets || [];
             if (sheets.length > 0) {
               const matchingSheet =
                 sheets.find((s: any) => s.properties?.sheetId === 399205612) ||
@@ -423,8 +439,8 @@ export async function appendToGoogleSheet(
             }
           );
           if (searchFolderRes.ok) {
-            const folderList = await searchFolderRes.json();
-            if (folderList.files && folderList.files.length > 0) {
+            const folderList = await safeResponseJson(searchFolderRes);
+            if (folderList?.files && folderList.files.length > 0) {
               folderId = folderList.files[0].id;
               console.log(`[Google Drive] Found existing folder: ${folderId}`);
             }
@@ -446,8 +462,8 @@ export async function appendToGoogleSheet(
             });
 
             if (createFolderRes.ok) {
-              const newFolder = await createFolderRes.json();
-              folderId = newFolder.id;
+              const newFolder = await safeResponseJson(createFolderRes);
+              folderId = newFolder?.id;
               console.log(`[Google Drive] Created folder: ${folderId}`);
             }
           }
@@ -480,8 +496,8 @@ export async function appendToGoogleSheet(
         });
 
         if (createRes.ok) {
-          const sheetData = await createRes.json();
-          targetSheetId = sheetData.spreadsheetId;
+          const sheetData = await safeResponseJson(createRes);
+          targetSheetId = sheetData?.spreadsheetId;
           targetTabTitle = 'Client Submissions';
           console.log(`[Google Sheets] Created new Spreadsheet ID: ${targetSheetId}`);
 
@@ -515,7 +531,7 @@ export async function appendToGoogleSheet(
             }
           );
         } else {
-          const createErr = await createRes.json().catch(() => ({}));
+          const createErr = (await safeResponseJson(createRes)) || {};
           console.error('[Google Sheets] Failed to create new spreadsheet:', createErr);
         }
       }
@@ -532,8 +548,8 @@ export async function appendToGoogleSheet(
             }
           );
           if (headerCheckRes.ok) {
-            const hData = await headerCheckRes.json();
-            if (!hData.values || hData.values.length === 0) {
+            const hData = await safeResponseJson(headerCheckRes);
+            if (!hData?.values || hData.values.length === 0) {
               await fetch(
                 `https://sheets.googleapis.com/v4/spreadsheets/${targetSheetId}/values/'${targetTabTitle}'!A1:AB1?valueInputOption=USER_ENTERED`,
                 {
@@ -585,8 +601,8 @@ export async function appendToGoogleSheet(
         }
 
         if (appendRes.ok) {
-          const appendData = await appendRes.json();
-          const updatedRange = appendData.updates?.updatedRange || 'A1:AB1';
+          const appendData = await safeResponseJson(appendRes);
+          const updatedRange = appendData?.updates?.updatedRange || 'A1:AB1';
           console.log(`[Google Sheets Success] Successfully appended row to Google Sheet: ${updatedRange} (${submission.partner1} & ${submission.partner2})`);
 
           // Record in internal history
@@ -608,7 +624,7 @@ export async function appendToGoogleSheet(
             message: `Successfully appended row for ${submission.partner1} & ${submission.partner2} to Google Sheet (${updatedRange}).`,
           };
         } else {
-          const errData = await appendRes.json().catch(() => ({}));
+          const errData = (await safeResponseJson(appendRes)) || {};
           const status = appendRes.status;
           const apiMessage = errData?.error?.message || appendRes.statusText;
           
@@ -901,8 +917,8 @@ export async function syncAllSubmissionsToGoogleSheet(
           }
         );
         if (metaRes.ok) {
-          const metaData = await metaRes.json();
-          const sheets = metaData.sheets || [];
+          const metaData = await safeResponseJson(metaRes);
+          const sheets = metaData?.sheets || [];
           if (sheets.length > 0) {
             const matchingSheet =
               sheets.find((s: any) => s.properties?.sheetId === 399205612) ||
@@ -971,8 +987,8 @@ export async function syncAllSubmissionsToGoogleSheet(
       }
 
       if (appendRes.ok) {
-        const appendData = await appendRes.json();
-        const updatedRange = appendData.updates?.updatedRange || `A2:AB${rows.length + 1}`;
+        const appendData = await safeResponseJson(appendRes);
+        const updatedRange = appendData?.updates?.updatedRange || `A2:AB${rows.length + 1}`;
         console.log(`[Google Sheets Bulk Sync] Successfully synced ${rows.length} rows (${updatedRange})`);
 
         return {
@@ -986,7 +1002,7 @@ export async function syncAllSubmissionsToGoogleSheet(
           message: `Successfully synced all ${rows.length} inquiries to Google Sheet (${updatedRange}).`,
         };
       } else {
-        const errData = await appendRes.json().catch(() => ({}));
+        const errData = (await safeResponseJson(appendRes)) || {};
         const status = appendRes.status;
         const apiMessage = errData?.error?.message || appendRes.statusText;
 
@@ -1095,8 +1111,8 @@ export async function ensureStudioDriveAndSheet(
           }
         );
         if (searchFolderRes.ok) {
-          const searchData = await searchFolderRes.json();
-          if (searchData.files && searchData.files.length > 0) {
+          const searchData = await safeResponseJson(searchFolderRes);
+          if (searchData?.files && searchData.files.length > 0) {
             folderId = searchData.files[0].id;
           }
         }
@@ -1117,8 +1133,8 @@ export async function ensureStudioDriveAndSheet(
           }),
         });
         if (createFolderRes.ok) {
-          const newFolder = await createFolderRes.json();
-          folderId = newFolder.id;
+          const newFolder = await safeResponseJson(createFolderRes);
+          folderId = newFolder?.id;
         }
       }
 
@@ -1133,8 +1149,8 @@ export async function ensureStudioDriveAndSheet(
           }
         );
         if (searchSheetRes.ok) {
-          const sheetList = await searchSheetRes.json();
-          if (sheetList.files && sheetList.files.length > 0) {
+          const sheetList = await safeResponseJson(searchSheetRes);
+          if (sheetList?.files && sheetList.files.length > 0) {
             spreadsheetId = sheetList.files[0].id;
           }
         }
@@ -1164,8 +1180,8 @@ export async function ensureStudioDriveAndSheet(
         });
 
         if (createSheetRes.ok) {
-          const sheetData = await createSheetRes.json();
-          spreadsheetId = sheetData.spreadsheetId;
+          const sheetData = await safeResponseJson(createSheetRes);
+          spreadsheetId = sheetData?.spreadsheetId;
           isNew = true;
 
           // Move into folder

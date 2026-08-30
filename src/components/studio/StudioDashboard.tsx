@@ -5,6 +5,7 @@ import { ShareFormModal } from './ShareFormModal';
 import { GoogleAppsScriptSetupModal } from './GoogleAppsScriptSetupModal';
 import { VisionShineLogo } from '../VisionShineLogo';
 import { getAccessToken, syncTokenWithBackend, googleSignIn } from '../../services/googleAuth';
+import { safeFetchJson } from '../../utils/api';
 import {
   Camera,
   MoreVertical,
@@ -123,9 +124,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch('/api/studio/templates');
-      const data = await res.json();
-      if (data.success && Array.isArray(data.templates)) {
+      const { ok, data } = await safeFetchJson<{ success: boolean; templates?: FormTemplate[] }>('/api/studio/templates');
+      if (ok && data && data.success && Array.isArray(data.templates)) {
         setTemplates(data.templates);
       }
     } catch (e) {
@@ -135,9 +135,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
 
   const fetchForms = async () => {
     try {
-      const res = await fetch('/api/studio/forms');
-      const data = await res.json();
-      if (data.success && Array.isArray(data.forms)) {
+      const { ok, data } = await safeFetchJson<{ success: boolean; forms?: StudioFormLink[] }>('/api/studio/forms');
+      if (ok && data && data.success && Array.isArray(data.forms)) {
         setForms(data.forms);
       }
     } catch (e) {
@@ -172,15 +171,17 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
     setIsDeletingForm(true);
     const code = formToDelete.formCode;
     try {
-      const res = await fetch(`/api/studio/forms/${code}`, { method: 'DELETE' });
-      if (res.ok) {
+      const { ok, data } = await safeFetchJson<{ success: boolean; message?: string }>(
+        `/api/studio/forms/${code}`,
+        { method: 'DELETE' }
+      );
+      if (ok) {
         setForms((prev) => prev.filter((f) => f.formCode !== code));
         setFormToDelete(null);
         setDeleteSuccessMsg(`Form link ${code} deleted successfully.`);
         setTimeout(() => setDeleteSuccessMsg(null), 3000);
       } else {
-        const data = await res.json().catch(() => ({}));
-        alert(data.message || 'Failed to delete form link.');
+        alert(data?.message || 'Failed to delete form link.');
       }
     } catch (e) {
       console.error('Delete form failed', e);
@@ -193,13 +194,15 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
     e.preventDefault();
     setIsSavingProfile(true);
     try {
-      const res = await fetch('/api/studio/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profileForm),
-      });
-      const data = await res.json();
-      if (data.success && data.studio) {
+      const { ok, data } = await safeFetchJson<{ success: boolean; studio?: StudioProfile; message?: string }>(
+        '/api/studio/profile',
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profileForm),
+        }
+      );
+      if (ok && data && data.success && data.studio) {
         onUpdateStudio(data.studio);
         setIsEditingProfile(false);
         setProfileSuccess(true);
@@ -220,7 +223,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
       if (token) {
         await syncTokenWithBackend(token);
       }
-      const res = await fetch('/api/sheets/sync-all', {
+      const { ok, data } = await safeFetchJson<any>('/api/sheets/sync-all', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -231,12 +234,11 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
           appsScriptUrl: studio.appsScriptUrl,
         }),
       });
-      const data = await res.json();
       setSyncStatus({
-        success: data.success,
-        message: data.message || (data.success ? 'Sync completed successfully!' : 'Sync encountered an error.'),
-        rowsCount: data.rowsSynced,
-        sheetUrl: data.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${studio.defaultSpreadsheetId}/edit?gid=399205612#gid=399205612`,
+        success: Boolean(ok && data && data.success),
+        message: data?.message || (ok ? 'Sync completed successfully!' : 'Sync encountered an error.'),
+        rowsCount: data?.rowsSynced,
+        sheetUrl: data?.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${studio.defaultSpreadsheetId}/edit?gid=399205612#gid=399205612`,
       });
     } catch (err: any) {
       setSyncStatus({

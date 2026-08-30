@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StudioFormLink, StudioProfile, FormTemplate } from '../../types';
 import { X, Link2, Sparkles, Check, FileSpreadsheet, Shield } from 'lucide-react';
+import { safeFetchJson } from '../../utils/api';
 
 interface CreateFormModalProps {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export const CreateFormModal: React.FC<CreateFormModalProps> = ({
       const url = existingForm ? `/api/studio/forms/${existingForm.formCode}` : '/api/studio/forms';
       const method = existingForm ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const { ok, data } = await safeFetchJson<{ success: boolean; form?: StudioFormLink; message?: string }>(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,9 +84,8 @@ export const CreateFormModal: React.FC<CreateFormModalProps> = ({
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to save form link.');
+      if (!ok || !data || !data.success || !data.form) {
+        throw new Error(data?.message || 'Failed to save form link.');
       }
 
       onSaved(data.form);

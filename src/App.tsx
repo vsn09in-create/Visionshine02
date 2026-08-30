@@ -6,6 +6,7 @@ import { PublicClientForm } from './components/client/PublicClientForm';
 import { VisionShineLogo } from './components/VisionShineLogo';
 import { ThemeMode, getInitialTheme, applyTheme } from './utils/theme';
 import { initGlobalClickSound } from './utils/sound';
+import { safeFetchJson } from './utils/api';
 
 function parseFormCodeFromLocation(): string | null {
   if (typeof window === 'undefined') return null;
@@ -70,9 +71,8 @@ export default function App() {
     const checkStudioSession = async () => {
       try {
         const savedToken = localStorage.getItem('studio_auth_token');
-        const res = await fetch('/api/studio/profile');
-        const data = await res.json();
-        if (data.success && data.studio) {
+        const { ok, data } = await safeFetchJson<{ success: boolean; studio?: StudioProfile }>('/api/studio/profile');
+        if (ok && data && data.success && data.studio) {
           // If token exists or was previously logged in
           if (savedToken) {
             setStudio(data.studio);

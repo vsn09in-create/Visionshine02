@@ -938,6 +938,27 @@ async function startServer() {
     res.send(JSON.stringify(list, null, 2));
   });
 
+  // Explicit 404 handler for API routes (prevent falling through to HTML index.html)
+  app.all('/api/*', (req: Request, res: Response) => {
+    res.status(404).json({
+      success: false,
+      message: `API route not found: ${req.method} ${req.originalUrl}`,
+    });
+  });
+
+  // Express API Error Handler (ensure JSON responses for all API errors)
+  app.use((err: any, req: Request, res: Response, next: express.NextFunction) => {
+    console.error('[Server API Error Handler]', err);
+    if (req.path.startsWith('/api/')) {
+      return res.status(500).json({
+        success: false,
+        message: err?.message || 'An internal server error occurred.',
+        error: String(err),
+      });
+    }
+    next(err);
+  });
+
   // Vite integration
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
